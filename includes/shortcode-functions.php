@@ -1,13 +1,3 @@
-// To do
-//add function to add message instead of showing price
-// add function to log prices with ip address in to a view tables(and create logs table along side it)
-// test multi packages
-// test fixed discounts
-// look at logic of some form (apply the lesser of the 2 discounts vs greater of the 2 discounts)
-// add styling options to pricing
-// add php units
-// create repo for other plugin timezon
-// 
 
 
 <?php
@@ -23,71 +13,180 @@ function dynamic_pricing_render_date_picker_shortcode() {
 
     ob_start();
     ?>
-    <style>
-    .dynamic-pricing-date-picker .input-wrapper {
-        display: inline-block;
-        padding: 5px;
-        border: 1px solid #ccc;
-        cursor: pointer;
-        border-radius: 4px;
-        background: #f9f9f9;
-    }
-    .dynamic-pricing-date-picker .input-wrapper:hover {
-        background: #eee;
-    }
-    .dynamic-pricing-date-picker input[type="date"] {
-        border: none;
-        background: transparent;
-        font-size: 12px;
-        cursor: pointer;
-        width: 100%;
-    }
-    </style>
+  
 
-    <div class="dynamic-pricing-date-picker">
-        <?php if ($show_venue) : ?>
-            <label for="dp-venue"><strong>Venue (optional):</strong></label><br>
-            <input type="text" id="dp-venue" name="dp-venue" placeholder="Venue name...">
-            <br><br>
-        <?php endif; ?>
+  <div class="dynamic-pricing-date-picker">
 
-        <label for="dp-date"><strong>Pick a date:</strong></label><br>
-        <div class="input-wrapper" onclick="document.getElementById('dp-date').showPicker?.() || document.getElementById('dp-date').focus()">
-            <input type="date" id="dp-date" name="dp-date">
-        </div>
-    </div>
+ <?php  $form_text_color = esc_attr($settings['form_text_color'] ?? '#333333'); ?>
+ <?php
 
-    <script>
-    document.addEventListener('DOMContentLoaded', function () {
-        const dateInput = document.getElementById('dp-date');
-        const venueInput = document.getElementById('dp-venue');
+echo '<style>
+.dynamic-pricing-date-picker {
+    color: ' . $form_text_color . ';
+}
+.dynamic-pricing-date-picker input,
+.dynamic-pricing-date-picker label,
+.dynamic-pricing-date-picker button {
+    color: inherit;
+}
 
-        if (dateInput && sessionStorage.getItem('dp-date')) {
-            dateInput.value = sessionStorage.getItem('dp-date');
-        }
-        if (venueInput && sessionStorage.getItem('dp-venue')) {
-            venueInput.value = sessionStorage.getItem('dp-venue');
-        }
+#dp-show-prices {
+    color: ' . $form_text_color . ';
+    border: 2px solid ' . $form_text_color . ';
+    background: transparent;
+    padding: 6px 14px;
+    font-weight: bold;
+    border-radius: 4px;
+    cursor: pointer;
+    transition: background 0.2s, color 0.2s;
+}
+#dp-show-prices:hover {
+    background: ' . $form_text_color . ';
+    color: #fff;
+}
+</style>';
+?>
 
-        if (dateInput) {
-            dateInput.addEventListener('change', function () {
-                sessionStorage.setItem('dp-date', this.value);
+
+    <?php if ($show_venue) : ?>
+        <label for="dp-venue"><strong>Venue </strong></label><br><BR>
+        <input type="text" id="dp-venue" name="dp-venue" placeholder="Venue name...">
+        <br><br>
+    <?php endif; ?>
+
+    <label for="dp-date"><strong>Pick a date:</strong></label><br><br>
+    <div class="input-wrapper" onclick="document.getElementById('dp-date').showPicker?.() || document.getElementById('dp-date').focus()">
+        <input type="date" id="dp-date" name="dp-date">
+    </div><br><br>
+
+    <!-- NEW: Error message output -->
+    <div id="dp-error-message" style="color: red; margin-bottom: 1em;"></div>
+
+    <button type="button" id="dp-show-prices">Show me prices</button>
+</div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function () {
+    const dateInput = document.getElementById('dp-date');
+    const venueInput = document.getElementById('dp-venue');
+    const showPricesButton = document.getElementById('dp-show-prices');
+    const errorBox = document.getElementById('dp-error-message');
+
+    if (showPricesButton && dateInput) {
+        showPricesButton.addEventListener('click', function () {
+            const dateVal = dateInput.value;
+            const venue = venueInput?.value || '';
+            errorBox.textContent = '';
+
+            // Validate date
+            if (!dateVal) {
+                errorBox.textContent = 'Please select a date.';
+                return;
+            }
+
+            // Validate venue
+            if (venueInput && venue.length < 5) {
+                errorBox.textContent = 'Please enter a valid venue.';
+                return;
+            }
+
+            let combinedPackages = {};
+
+            document.querySelectorAll('.dynamic-pricing-widget').forEach(function (widget) {
+                const packageData = JSON.parse(widget.getAttribute('data-package'));
+                const settingsData = JSON.parse(widget.getAttribute('data-settings'));
+
+                const midweekDays = settingsData.midweek_days || [2, 3, 4];
+                const winterMonths = settingsData.winter_months || [11, 12, 1, 2];
+                const roundingValue = parseInt(settingsData.rounding_value || 0);
+                const conflictMode = settingsData.discount_conflict_mode || 'greater';
+
+                const priceSpan = widget.querySelector('.dynamic-price');
+                const originalSpan = widget.querySelector('.dynamic-original-price');
+                const placeholder = widget.querySelector('.dynamic-price-placeholder');
+                const showReduced = widget.getAttribute('data-show-reduced-price') === 'true';
+
+                const selectedDate = new Date(dateVal + 'T00:00:00');
+                if (isNaN(selectedDate)) return;
+
+                let price = parseFloat(packageData.base_price);
+                const basePrice = price;
+                const dayNumber = selectedDate.getDay() === 0 ? 7 : selectedDate.getDay();
+                const month = selectedDate.getMonth() + 1;
+
+                // --- Apply discount logic ---
+                let midweekDiscount = 0;
+                let winterDiscount = 0;
+
+                if (midweekDays.includes(dayNumber)) {
+                    midweekDiscount = packageData.midweek_discount_type === 'percent'
+                        ? price * (parseFloat(packageData.midweek_discount_value) / 100)
+                        : parseFloat(packageData.midweek_discount_value);
+                }
+
+                if (winterMonths.includes(month)) {
+                    winterDiscount = packageData.winter_discount_type === 'percent'
+                        ? price * (parseFloat(packageData.winter_discount_value) / 100)
+                        : parseFloat(packageData.winter_discount_value);
+                }
+
+                let appliedDiscount = 0;
+                if (midweekDiscount && winterDiscount) {
+                    appliedDiscount = conflictMode === 'lesser'
+                        ? Math.min(midweekDiscount, winterDiscount)
+                        : Math.max(midweekDiscount, winterDiscount);
+                } else {
+                    appliedDiscount = midweekDiscount || winterDiscount;
+                }
+
+                price -= appliedDiscount;
+
+                if (roundingValue > 0) {
+                    price = Math.ceil(price / roundingValue) * roundingValue;
+                }
+
+                price = Math.max(0, price);
+                priceSpan.textContent = '£' + price.toFixed(2);
+                priceSpan.style.display = 'inline';
+                if (placeholder) placeholder.style.display = 'none';
+
+                if (showReduced && price < basePrice && originalSpan) {
+                    originalSpan.textContent = '£' + basePrice.toFixed(2);
+                    originalSpan.style.display = 'inline';
+                } else if (originalSpan) {
+                    originalSpan.style.display = 'none';
+                }
+
+                combinedPackages[packageData.name] = price.toFixed(2);
             });
-        }
 
-        if (venueInput) {
-            venueInput.addEventListener('input', function () {
-                sessionStorage.setItem('dp-venue', this.value);
+            // Log request
+            fetch(DP_AJAX.rest_url, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    venue: venue,
+                    date: dateVal,
+                    packages: combinedPackages
+                })
+            })
+            .then(res => res.json())
+            .then(data => {
+                //console.log('Logged:', data);
+            })
+            .catch(err => {
+                //console.warn('Failed to log price request:', err);
             });
-        }
-    });
-    </script>
+        });
+    }
+});
+</script>
+
     <?php
     return ob_get_clean();
 }
 add_shortcode('dynamic_pricing_date_picker', 'dynamic_pricing_render_date_picker_shortcode');
 
-// === Price Display Shortcode ===
 add_shortcode('dynamic_price', function($atts) {
     $atts = shortcode_atts(['id' => 0], $atts);
     $package_id = intval($atts['id']);
@@ -98,114 +197,55 @@ add_shortcode('dynamic_price', function($atts) {
     $package = $wpdb->get_row($wpdb->prepare("SELECT * FROM $table WHERE id = %d", $package_id));
     if (!$package) return 'Package not found.';
 
-    // ✅ Now load settings AFTER the package is ready
     $settings = dynamic_pricing_get_settings();
-    $show_reduced = !empty($settings['show_reduced_price']);
-
-    $price = dynamic_pricing_calculate_price($package, $settings, current_time('timestamp'));
+    $placeholder_message = esc_html($settings['price_message'] ?? 'Please select a date to view prices.');
+    $show_reduced_price = !empty($settings['show_reduced_price']) ? 'true' : 'false';
 
     ob_start();
+
+echo '<style>
+.dynamic-pricing-date-picker {
+    color: ' . $form_text_color . ';
+}
+.dynamic-pricing-date-picker input,
+.dynamic-pricing-date-picker label,
+.dynamic-pricing-date-picker button {
+    color: inherit;
+}
+</style>';
     ?>
-<div class="dynamic-pricing-widget"
-     data-package='<?php echo esc_attr(json_encode($package)); ?>'
-     data-settings='<?php echo esc_attr(json_encode($settings)); ?>'>
+    <div class="dynamic-pricing-widget"
+         data-package='<?php echo esc_attr(json_encode($package)); ?>'
+        
+         <?php
+    // Inject only needed settings to frontend for efficiency
+    $frontend_settings = [
+        'midweek_days' => maybe_unserialize($settings['midweek_days'] ?? []),
+        'winter_months' => maybe_unserialize($settings['winter_months'] ?? []),
+        'rounding_value' => $settings['rounding_value'] ?? 0,
+        'discount_conflict_mode' => $settings['discount_conflict_mode'] ?? 'greater'
+    ];
+?>
+data-settings='<?php echo esc_attr(json_encode($frontend_settings)); ?>'
 
-    <?php if ($show_reduced && $price < $package->base_price) : ?>
-        <span class="dynamic-original-price">£<?php echo number_format($package->base_price, 2); ?></span>
-    <?php endif; ?>
-    
-    <span class="dynamic-price">£<?php echo number_format($price, 2); ?></span>
-</div>
 
-<style>
-.dynamic-original-price {
-    text-decoration: line-through;
-    color: #888;
-    font-size: 0.9em;
-    margin-right: 8px;
-    opacity: 0.8;
-    vertical-align: middle;
-}
-</style>
-<script>
-document.addEventListener('DOMContentLoaded', function() {
-    document.querySelectorAll('.dynamic-pricing-widget').forEach(function(widget) {
-        const priceSpan = widget.querySelector('.dynamic-price');
-        const packageData = JSON.parse(widget.getAttribute('data-package'));
-        const settingsData = JSON.parse(widget.getAttribute('data-settings'));
-
-        console.log('packageData loaded inside widget:', packageData);
-        console.log('settingsData loaded inside widget:', settingsData);
-
-        function recalculatePrice(dateStr) {
-    const selectedDate = new Date(dateStr + 'T00:00:00');
-    if (isNaN(selectedDate)) return;
-
-    let price = parseFloat(packageData.base_price);
-    const dayOfWeek = selectedDate.getDay();
-    const dayNumber = dayOfWeek === 0 ? 7 : dayOfWeek;
-    const month = selectedDate.getMonth() + 1;
-
-    const midweekDays = settingsData.midweek_days ? settingsData.midweek_days.map(Number) : [2,3,4];
-    if (midweekDays.includes(dayNumber)) {
-        if (packageData.midweek_discount_type === 'percent') {
-            price -= price * (parseFloat(packageData.midweek_discount_value) / 100);
-        } else {
-            price -= parseFloat(packageData.midweek_discount_value);
-        }
-    }
-
-    const winterMonths = settingsData.winter_months ? settingsData.winter_months.map(Number) : [11,12,1,2];
-    if (winterMonths.includes(month)) {
-        if (packageData.winter_discount_type === 'percent') {
-            price -= price * (parseFloat(packageData.winter_discount_value) / 100);
-        } else {
-            price -= parseFloat(packageData.winter_discount_value);
-        }
-    }
-
-    // ✅ Apply rounding (new)
-    const roundingValue = parseInt(settingsData.rounding_value || 0);
-    if (roundingValue > 0) {
-        price = Math.ceil(price / roundingValue) * roundingValue;
-    }
-
-    price = Math.max(0, price);
-    priceSpan.textContent = '£' + price.toFixed(2);
-}
-
-        // Load initial stored date if available
-        const storedDate = sessionStorage.getItem('dp-date');
-        if (storedDate) {
-            console.log('Stored date found in sessionStorage:', storedDate);
-            recalculatePrice(storedDate);
-        }
-
-        // ✅ Also update when date input changes
-        const globalDateInput = document.getElementById('dp-date');
-        if (globalDateInput) {
-            globalDateInput.addEventListener('change', function () {
-                console.log('Date picker changed, recalculating for:', this.value);
-                recalculatePrice(this.value);
-            });
-        }
-    });
-});
-
-</script>
-
-    <?php
-    return ob_get_clean();
+         data-show-reduced-price="<?php echo esc_attr($show_reduced_price); ?>">
+        <span class="dynamic-original-price" style="display:none;"></span>
+        <span class="dynamic-price" style="display:none;"></span>
+        <span class="dynamic-price-placeholder"><?php echo $placeholder_message; ?></span>
+    </div>
+    <?php return ob_get_clean();
 });
 
 
 // === Price Calculation Helper === // NOT USED!!
+/*
 function dynamic_pricing_calculate_price($package, $settings, $timestamp) {
     $month = date('n', $timestamp);
     $day_of_week = date('N', $timestamp);
     $price = floatval($package->base_price);
 
-    error_log('Raw price before rounding: ' . $price);
+   
 
 
 
@@ -235,11 +275,9 @@ function dynamic_pricing_calculate_price($package, $settings, $timestamp) {
 
     // Debugging logs (optional)
     
-    error_log('Rounding value: ' . $rounding_value);
-    error_log('Raw price after rounding: ' . $price);
-
+   
     return max(0, $price);
 }
 
-
+*/
 ?>

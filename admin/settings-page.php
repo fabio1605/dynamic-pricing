@@ -9,6 +9,30 @@ if (isset($_POST['dynamic_pricing_settings_nonce']) && wp_verify_nonce($_POST['d
     global $wpdb;
     $table = $wpdb->prefix . 'dynamic_pricing_settings';
 
+
+
+
+    $form_text_color = sanitize_hex_color($_POST['form_text_color'] ?? '#333333');
+$wpdb->replace($table, [
+    'setting_key' => 'form_text_color',
+    'setting_value' => $form_text_color,
+]);
+
+
+$discount_conflict_mode = sanitize_text_field($_POST['discount_conflict_mode'] ?? 'greater');
+$wpdb->replace($table, [
+    'setting_key' => 'discount_conflict_mode',
+    'setting_value' => $discount_conflict_mode,
+]);
+
+    $price_message = sanitize_textarea_field($_POST['dynamic_pricing_settings']['price_message'] ?? '');
+$wpdb->replace($table, [
+    'setting_key' => 'price_message',
+    'setting_value' => maybe_serialize($price_message),
+]);
+
+
+
     $rounding_value = isset($_POST['rounding_value']) ? intval($_POST['rounding_value']) : 0;
 $wpdb->replace($table, [
     'setting_key' => 'rounding_value',
@@ -116,6 +140,17 @@ $months_of_year = [
         </ul>
 
         <h2>Display Options</h2>
+
+        <tr>
+    <th><label for="form_text_color">Form Text Color</label></th>
+    <td>
+        <input type="color" name="form_text_color" id="form_text_color" value="<?php echo esc_attr($settings['form_text_color'] ?? '#333333'); ?>">
+        <p class="description">Select the text color for the frontend date picker form.</p>
+    </td>
+</tr>
+
+
+
         <table class="form-table">
             <tr>
                 <th><label for="show_reduced_price">Show Reduced Price</label></th>
@@ -131,9 +166,24 @@ $months_of_year = [
                     <p class="description">Adds an optional venue input box on the date picker form (for tracking).</p>
                 </td>
             </tr>
+
+            <tr>
+    <th scope="row">
+        <label for="dp_price_message">Message before user enters details:</label>
+    </th>
+    <td>
+        <textarea name="dynamic_pricing_settings[price_message]" id="dp_price_message" rows="3" cols="50"><?php
+            echo esc_textarea($settings['price_message'] ?? 'Please select a date to view package prices.');
+        ?></textarea>
+        <p class="description">This message will be shown before the user selects a date and/or venue.</p>
+    </td>
+</tr>
+
+
+
         </table>
 
-        <h2>Price Rounding</h2>
+        <h2>Price Calculations</h2>
 <table class="form-table">
     <tr>
         <th scope="row"><label for="rounding_value">Round up final price:</label></th>
@@ -146,6 +196,20 @@ $months_of_year = [
             <p class="description">Choose to round final prices for nicer figures.</p>
         </td>
     </tr>
+
+
+    <tr>
+    <th><label for="discount_conflict_mode">When both discounts apply:</label></th>
+    <td>
+        <select name="discount_conflict_mode" id="discount_conflict_mode">
+            <option value="greater" <?php selected($settings['discount_conflict_mode'] ?? '', 'greater'); ?>>Apply greater discount</option>
+            <option value="lesser" <?php selected($settings['discount_conflict_mode'] ?? '', 'lesser'); ?>>Apply lesser discount</option>
+        </select>
+        <p class="description">Choose which discount to apply when both midweek and winter discounts are valid.</p>
+    </td>
+</tr>
+
+
 </table>
 
 

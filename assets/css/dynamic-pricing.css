@@ -1,0 +1,39 @@
+
+.dynamic-price-placeholder {
+color: #888;
+font-style: italic;
+display: inline-block;
+}
+
+.dynamic-original-price {
+text-decoration: line-through;
+color: #888;
+font-size: 0.9em;
+margin-right: 8px;
+opacity: 0.8;
+vertical-align: middle;
+}
+.dynamic-pricing-date-picker .input-wrapper {
+display: inline-block;
+padding: 5px;
+border: 1px solid #ccc;
+cursor: pointer;
+border-radius: 4px;
+background: #f9f9f9;
+}
+.dynamic-pricing-date-picker .input-wrapper:hover {
+background: #eee;
+}
+.dynamic-pricing-date-picker input[type="date"] {
+border: none;
+background: transparent;
+font-size: 12px;
+cursor: pointer;
+width: 100%;
+}
+
+#dp-error-message {
+    font-size: 0.9em;
+    color: rgb(18, 3, 3);
+    margin-top: 10px;
+}
