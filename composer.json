@@ -1,0 +1,25 @@
+{
+    "config": {
+      "platform": {
+        "php": "7.4.0"
+      },
+      "vendor-dir": "php/vendor"
+    },
+    "require-dev": {
+      "phpunit/phpunit": "^9.5"
+    },
+    "autoload": {
+      "psr-4": {
+        "DynamicPricing\\": "includes/"
+      }
+    },
+    "autoload-dev": {
+      "psr-4": {
+        "DynamicPricing\\Tests\\": "tests/"
+      }
+    },
+    "scripts": {
+      "test": "php/phpunit"
+    }
+  }
+  

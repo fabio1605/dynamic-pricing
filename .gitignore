@@ -1,0 +1,10 @@
+# Ignore Composer vendor folder (we'll commit it if needed later)
+php/vendor/
+
+# IDE/editor junk
+.idea/
+.vscode/
+.DS_Store
+
+# PHPUnit cache
+.phpunit.result.cache
