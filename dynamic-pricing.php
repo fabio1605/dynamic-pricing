@@ -3,10 +3,10 @@
 Plugin Name: Dynamic Pricing
 Description: Create packages with dynamic pricing based on midweek and winter discounts.
 Version: 1.0
-Author: Your Name
+Author: Fabio Photography
 */
 
-
+define('DP_PLUGIN_VERSION', '1.0.0');
 
 if (!defined('ABSPATH')) {
     exit; // Exit if accessed directly
@@ -41,6 +41,61 @@ add_action('wp_enqueue_scripts', function () {
     );
 });
 
+
+// Check plugin version on activation or upgrade
+register_activation_hook(__FILE__, 'dp_check_plugin_version');
+
+function dp_check_plugin_version() {
+    // Get the saved plugin version from the options table
+    $stored_version = get_option('dp_plugin_version', '1.0.0'); // Default to '1.0.0' if not set
+
+    // Compare stored version to the current version
+    if (version_compare($stored_version, DP_PLUGIN_VERSION, '<')) {
+        // Run upgrade logic if the current version is greater than the stored version (meaning an update is happening)
+        dp_run_upgrade_paths($stored_version);
+    }
+
+    // Save the current version to the database
+    update_option('dp_plugin_version', DP_PLUGIN_VERSION);
+}
+
+
+function dp_run_upgrade_paths($stored_version) {
+    if (version_compare($stored_version, '1.1.0', '<')) {
+        // Upgrade path for versions before 1.1.0 (e.g., schema changes)
+        dp_upgrade_to_1_1_0();
+    }
+
+    if (version_compare($stored_version, '1.2.0', '<')) {
+        // Upgrade path for versions before 1.2.0 (e.g., new settings options)
+        dp_upgrade_to_1_2_0();
+    }
+    // Add more version checks here as needed
+}
+
+function dp_upgrade_to_1_1_0() {
+    // Example upgrade logic for version 1.1.0
+    global $wpdb;
+    $table_name = $wpdb->prefix . 'dynamic_pricing_settings';
+
+    // Update the database schema or add new columns
+    $sql = "ALTER TABLE $table_name ADD COLUMN new_discount_method VARCHAR(255) DEFAULT 'fixed' NOT NULL";
+    $wpdb->query($sql);
+
+    // You can also update default settings, if required
+    update_option('dp_new_feature_enabled', true);
+}
+
+function dp_upgrade_to_1_2_0() {
+    // Example upgrade logic for version 1.2.0
+    global $wpdb;
+    $table_name = $wpdb->prefix . 'dynamic_pricing_packages';
+
+    // You might want to add new fields, or modify the data
+    $wpdb->query("UPDATE $table_name SET some_column = 'new_value' WHERE some_column IS NULL");
+
+    // Perform other upgrade actions here as needed
+}
 
 
 function dp_create_log_table() {
