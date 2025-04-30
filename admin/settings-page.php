@@ -106,6 +106,45 @@ $months_of_year = [
     9 => 'September', 10 => 'October', 11 => 'November', 12 => 'December'
 ];
 ?>
+<div class="wrap">
+    <h1>Dynamic Pricing - Settings</h1>
+
+    <!-- Help Section -->
+    <div class="notice notice-info">
+        <h2>Welcome to the Dynamic Pricing Settings</h2>
+        <p>This plugin allows you to configure dynamic pricing for your products or services based on various discount conditions.</p>
+        
+        <h3>Key Features:</h3>
+        <ul>
+            <li><strong>Discount Configuration:</strong> Apply midweek and winter discounts to your packages. You can choose whether the greater or lesser discount is applied when both conditions are met.</li>
+            <li><strong>Venue Input:</strong> You can optionally enable a venue input field to track different pricing based on the venue selection.</li>
+            <li><strong>Price Rounding:</strong> The plugin allows you to round the final price to the nearest £50 (or any other value) for a cleaner and more attractive pricing display.</li>
+            <li><strong>Custom Labels:</strong> Customize the labels for price and date fields to match your branding and preferred wording.</li>
+            <li><strong>Error Handling:</strong> Ensure that users are prompted with clear error messages if they haven't selected a date or entered a valid venue name.</li>
+        </ul>
+
+        <h3>Discount Logic Explained:</h3>
+        <p>The plugin supports two types of discounts: Midweek and Winter discounts. Here's how they work:</p>
+        <ul>
+            <li><strong>Midweek Discount:</strong> You can apply a fixed amount or a percentage discount for bookings made on midweek days (Monday to Friday). You can specify the exact days you consider midweek in the settings.</li>
+            <li><strong>Winter Discount:</strong> Apply discounts during winter months (November through February). This can be either a fixed amount or a percentage-based discount.</li>
+        </ul>
+        <p>When both discounts are eligible, you can choose whether to apply the <strong>greater discount</strong> or the <strong>lesser discount</strong> depending on your business needs.</p>
+
+        <h3>How Discounts Are Applied:</h3>
+        <p>When a user selects a date and venue, the plugin will:</p>
+        <ul>
+            <li>Check if the date is within the midweek or winter discount period.</li>
+            <li>Calculate the applicable discounts based on the selected criteria.</li>
+            <li>Round the final price according to your selected rounding preference (e.g., round up to the nearest £50).</li>
+            <li>Display the final price along with any applicable reduced price.</li>
+        </ul>
+
+        <h3>Versioning and Updates:</h3>
+        <p>Every time the plugin is updated, the version number will increase, and necessary database updates will be automatically handled. You can always check the current version in the plugin settings.</p>
+        <p>If you encounter any issues with the plugin, make sure you have the latest version installed.</p>
+    </div>
+</div>
 
 <div class="wrap">
     <h1>Dynamic Pricing - General Settings</h1>
