@@ -22,7 +22,7 @@ function dynamic_pricing_render_date_picker_shortcode() {
 
 echo '<style>
 .dynamic-pricing-date-picker {
-    color: ' . $form_text_color . ';
+    color: ' . esc_html($form_text_color) . ';
 }
 .dynamic-pricing-date-picker input,
 .dynamic-pricing-date-picker label,
@@ -31,8 +31,8 @@ echo '<style>
 }
 
 #dp-show-prices {
-    color: ' . $form_text_color . ';
-    border: 2px solid ' . $form_text_color . ';
+    color: ' . esc_html($form_text_color) . ';
+    border: 2px solid ' . esc_html($form_text_color) . ';
     background: transparent;
     padding: 6px 14px;
     font-weight: bold;
@@ -41,7 +41,7 @@ echo '<style>
     transition: background 0.2s, color 0.2s;
 }
 #dp-show-prices:hover {
-    background: ' . $form_text_color . ';
+    background: ' . esc_html($form_text_color) . ';
     color: #fff;
 }
 </style>';
@@ -186,7 +186,6 @@ document.addEventListener('DOMContentLoaded', function () {
     return ob_get_clean();
 }
 add_shortcode('dynamic_pricing_date_picker', 'dynamic_pricing_render_date_picker_shortcode');
-
 add_shortcode('dynamic_price', function($atts) {
     $atts = shortcode_atts(['id' => 0], $atts);
     $package_id = intval($atts['id']);
@@ -194,7 +193,12 @@ add_shortcode('dynamic_price', function($atts) {
 
     global $wpdb;
     $table = $wpdb->prefix . 'dynamic_pricing_packages';
-    $package = $wpdb->get_row($wpdb->prepare("SELECT * FROM $table WHERE id = %d", $package_id));
+
+    // Use $wpdb->prepare() safely without re-escaping or altering the table name
+    $package = $wpdb->get_row(
+        $wpdb->prepare("SELECT * FROM {$table} WHERE id = %d", $package_id)
+    );
+
     if (!$package) return 'Package not found.';
 
     $settings = dynamic_pricing_get_settings();
@@ -202,41 +206,37 @@ add_shortcode('dynamic_price', function($atts) {
     $show_reduced_price = !empty($settings['show_reduced_price']) ? 'true' : 'false';
 
     ob_start();
-
-echo '<style>
-.dynamic-pricing-date-picker {
-    color: ' . $form_text_color . ';
-}
-.dynamic-pricing-date-picker input,
-.dynamic-pricing-date-picker label,
-.dynamic-pricing-date-picker button {
-    color: inherit;
-}
-</style>';
     ?>
+    <style>
+    .dynamic-pricing-date-picker {
+        color: <?php echo esc_html($form_text_color ?? '#000'); ?>;
+    }
+    .dynamic-pricing-date-picker input,
+    .dynamic-pricing-date-picker label,
+    .dynamic-pricing-date-picker button {
+        color: inherit;
+    }
+    </style>
+
     <div class="dynamic-pricing-widget"
          data-package='<?php echo esc_attr(json_encode($package)); ?>'
-        
          <?php
-    // Inject only needed settings to frontend for efficiency
-    $frontend_settings = [
-        'midweek_days' => maybe_unserialize($settings['midweek_days'] ?? []),
-        'winter_months' => maybe_unserialize($settings['winter_months'] ?? []),
-        'rounding_value' => $settings['rounding_value'] ?? 0,
-        'discount_conflict_mode' => $settings['discount_conflict_mode'] ?? 'greater'
-    ];
-?>
-data-settings='<?php echo esc_attr(json_encode($frontend_settings)); ?>'
-
-
+            $frontend_settings = [
+                'midweek_days' => maybe_unserialize($settings['midweek_days'] ?? []),
+                'winter_months' => maybe_unserialize($settings['winter_months'] ?? []),
+                'rounding_value' => $settings['rounding_value'] ?? 0,
+                'discount_conflict_mode' => $settings['discount_conflict_mode'] ?? 'greater'
+            ];
+         ?>
+         data-settings='<?php echo esc_attr(json_encode($frontend_settings)); ?>'
          data-show-reduced-price="<?php echo esc_attr($show_reduced_price); ?>">
         <span class="dynamic-original-price" style="display:none;"></span>
         <span class="dynamic-price" style="display:none;"></span>
-        <span class="dynamic-price-placeholder"><?php echo $placeholder_message; ?></span>
+        <span class="dynamic-price-placeholder"><?php echo esc_html($placeholder_message); ?></span>
     </div>
-    <?php return ob_get_clean();
+    <?php
+    return ob_get_clean();
 });
-
 
 // === Price Calculation Helper === // NOT USED!!
 /*

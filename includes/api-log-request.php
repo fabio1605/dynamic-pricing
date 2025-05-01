@@ -27,8 +27,9 @@ function dp_log_price_request($venue, $date,  $package_prices) {
 
     $table = $wpdb->prefix . 'dynamic_pricing_logs';
 
-    $ip = $_SERVER['REMOTE_ADDR'] ?? 'unknown';
-    $formatted_date = date('Y-m-d', strtotime($date));
+    $ip = isset($_SERVER['REMOTE_ADDR']) ? sanitize_text_field(wp_unslash($_SERVER['REMOTE_ADDR'])) : 'unknown';
+
+    $formatted_date = gmdate('Y-m-d', strtotime($date));
 
     // Convert array of packages to "Gold = £1400, Platinum = £1600" format
     $package_display = [];
